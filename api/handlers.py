@@ -1,9 +1,12 @@
 import logging
+import threading
 from dataclasses import asdict
 from http import HTTPStatus
 
+from sanic import ServerError
 from sanic.request import Request
 from sanic.response import json
+from seleniumbase import get_driver
 
 from . import extractors
 from .middlewares.caching import cache
@@ -69,3 +72,24 @@ async def download(_, id: str):
             status=HTTPStatus.INTERNAL_SERVER_ERROR,
         )
     return json(asdict(download_data))
+
+
+@query_checker(["url"])
+@cache
+async def bypass(_, url: str):
+    try:
+        driver = get_driver("chrome", headless=True, undetectable=True)
+
+        # Run fix_cf_just_moment in a separate thread
+        thread = threading.Thread(target=extractors.auto.fix_cf_just_moment, args=(url, driver))
+        thread.start()
+        thread.join()  # Wait for the thread to finish
+
+        xpath = "/html/body/main/p[2]/a"
+        element = driver.find_element(by="xpath", value=xpath)  # 使用 XPath 查找元素
+        data = {"url": element.get_attribute("href")}
+        driver.quit()
+        return json(data)
+    except Exception as e:
+        logging.error(f"Error in bypass function: {e}")
+        raise ServerError("An error occurred while processing your request.")

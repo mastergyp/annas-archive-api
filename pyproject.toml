@@ -13,6 +13,7 @@ lxml = "^4.9.2"
 aiohttp = "^3.8.4"
 beautifulsoup4 = "^4.12.2"
 aiodns = "^3.0.0"
+seleniumbase = "^4.25.4"
 
 
 [tool.poetry.group.dev.dependencies]
